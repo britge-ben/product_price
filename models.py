@@ -4,7 +4,7 @@ import decimal
 import datetime
 
 from parler.models import TranslatedFields
-from apps_project.product.models import Product
+from apps_shared.product.models import Product
 from apps_base._base.models import BaseModel, BaseTranslationModel
 from apps_base.entity.models import Store
 from apps_base._base import model_fields
