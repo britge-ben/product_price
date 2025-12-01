@@ -1,0 +1,3 @@
+[submodule "apps_shared/invoice"]
+	path = apps_shared/invoice
+	url = https://github.com/britge-ben/invoice
