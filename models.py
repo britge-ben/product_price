@@ -5,11 +5,13 @@ import datetime
 
 from parler.models import TranslatedFields
 from apps_shared.product.models import Product
-from apps_base._base.models import BaseModel, BaseTranslationModel
+from apps_base._base.models import BaseModel, BaseTranslationModel, SequenceMixin
 from apps_base.entity.models import Store
 from apps_base._base import model_fields
 
 from .manager import DiscountGroupManager, DiscountManager, DiscountCouponManager
+from apps_base._base.models import DefaultMixin
+from apps_shared.product.choices import PRICING_TYPE
 
 
 import logging
@@ -19,8 +21,8 @@ def return_date_time_latest():
     return datetime.datetime(9999, 12, 31)
 
 def get_default_store():
-    return Store.objects.get_current()
-from apps_base._base.models import DefaultMixin
+    return Store.objects.get_current().pk
+
 class PriceGroup(DefaultMixin, BaseModel):
     DEFAULTS = ['store']
     store = model_fields.ForeignKey("entity.Store", verbose_name=_("Store"),  on_delete=model_fields.CASCADE, default=get_default_store)
@@ -32,17 +34,32 @@ class PriceGroup(DefaultMixin, BaseModel):
 
     def __str__(self):
         return self.description
-    
-class ProductPrice(BaseModel):
+
+class ProductPrice(SequenceMixin, BaseModel):
+    SEQUENCE_FIELDS = []
     importable_model = True
 
-    price_group = model_fields.ForeignKey("product_price.PriceGroup", verbose_name=_("Price Group"), on_delete=model_fields.CASCADE)
-    product = model_fields.ForeignKey("product.Product", verbose_name=_("Product"), on_delete=model_fields.CASCADE)
+    price_group = model_fields.ForeignKey("product_price.PriceGroup", verbose_name=_("Price Group"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
+    product = model_fields.ForeignKey("product.Product", verbose_name=_("Product"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
 
-    price = model_fields.DecimalField(verbose_name=_('Price'),max_digits=12, decimal_places=2, default=0)
+    price = model_fields.DecimalField(verbose_name=_('Price'),style={'wrapper_class': 'col-6'},max_digits=12, decimal_places=2, default=0)
 
-    valid_from = model_fields.DateTimeField(verbose_name=_("valid from"),default= timezone.now )  
-    valid_to = model_fields.DateTimeField(verbose_name=_("valid to"),default= return_date_time_latest )  
+    pricing_type = model_fields.CharField(
+        verbose_name=_('Pricing type'), 
+        max_length=100, 
+        default='price', 
+        choices=PRICING_TYPE.choices,
+        style={'wrapper_class': 'col-6'}
+    )
+
+    min_order_quantity = model_fields.IntegerField(verbose_name=_('min quantity order discount'), default=0, style={'wrapper_class': 'col-6'})
+    max_order_quantity = model_fields.IntegerField(verbose_name=_('max quantity order discount'), default=9999999, style={'wrapper_class': 'col-6'})
+
+    min_duration = model_fields.DurationField(verbose_name=_('Min duration'), default=timezone.timedelta(days=0), style={'wrapper_class': 'col-6'})
+    max_duration = model_fields.DurationField(verbose_name=_('Max duration'), default=timezone.timedelta(days=100), style={'wrapper_class': 'col-6'})
+
+    valid_from = model_fields.DateTimeField(verbose_name=_("valid from"),default= timezone.now, style={'wrapper_class': 'col-6'})  
+    valid_to = model_fields.DateTimeField(verbose_name=_("valid to"),default= return_date_time_latest, style={'wrapper_class': 'col-6'})  
 
     class Meta:
         verbose_name = _('Price group price')

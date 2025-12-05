@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('customer', '0001_initial'),
         ('entity', '0011_store_website_old_website_alter_store_website'),
         ('product', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -195,7 +194,7 @@ class Migration(migrations.Migration):
                 ('valid_from', apps_base._base.model_fields.DateTimeField(default=django.utils.timezone.now, verbose_name='valid from')),
                 ('valid_to', apps_base._base.model_fields.DateTimeField(default=apps_shared.product_price.models.return_date_time_latest, verbose_name='valid to')),
                 ('created_by', apps_base._base.model_fields.ForeignKey(editable=False, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(app_label)s_%(class)s_created_by', to=settings.AUTH_USER_MODEL)),
-                ('customer', apps_base._base.model_fields.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='customer.customer', verbose_name='Customer')),
+                #('customer', apps_base._base.model_fields.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='customer.customer', verbose_name='Customer')),
                 ('customer_discount_group', apps_base._base.model_fields.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='product_price.customerdiscountgroup', verbose_name='Customer discount group')),
                 ('modified_by', apps_base._base.model_fields.ForeignKey(editable=False, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(app_label)s_%(class)s_modified_by', to=settings.AUTH_USER_MODEL)),
                 ('product', apps_base._base.model_fields.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='product.product', verbose_name='Product')),
@@ -204,7 +203,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Discount group discount',
                 'verbose_name_plural': 'Discount group discounts',
-                'indexes': [models.Index(fields=['product', 'product_discount_group', 'customer_discount_group', 'customer', 'valid_from', 'valid_to'], include=('discount_perc', 'product'), name='product_prices_index')],
+                'indexes': [],
                 'constraints': [models.CheckConstraint(condition=models.Q(('product__isnull', False), ('product_discount_group__isnull', False), _connector='OR'), name='new_product_or_group')],
             },
             bases=(apps_base._base.models.ModelMixin, models.Model),

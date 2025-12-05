@@ -21,9 +21,6 @@ class ProductPriceSerializer(BaseModelSerializer):
     class Meta:
         model = ProductPrice
         fields = '__all__'
-        extra_kwargs = {
-            'product':{'style':{'class':'select2'}, 'html_cutoff':10000}
-        }
     
 class CustomerDiscountGroupSerializer(BaseModelSerializer):
     class Meta:
