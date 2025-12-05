@@ -44,6 +44,9 @@ class Migration(migrations.Migration):
             field=apps_base._base.model_fields.FloatField(default=100, editable=False, verbose_name='Sequence'),
             preserve_default=False,
         ),
+        # migrations.RunSQL(
+        #     "ALTER TABLE product_price_discount DROP COLUMN customer_id;"
+        # ),
         migrations.AddField(
             model_name='discount',
             name='customer',
