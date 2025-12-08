@@ -24,7 +24,7 @@ def get_default_store():
     return Store.objects.get_current().pk
 
 class PriceGroup(DefaultMixin, BaseModel):
-    DEFAULTS = ['store']
+    DEFAULTS = {'store': get_default_store}
     store = model_fields.ForeignKey("entity.Store", verbose_name=_("Store"),  on_delete=model_fields.CASCADE, default=get_default_store)
     description = model_fields.CharField(_("Price group"), unique=True, max_length=50)
 
@@ -35,11 +35,22 @@ class PriceGroup(DefaultMixin, BaseModel):
     def __str__(self):
         return self.description
 
+class ProductPriceGroup(BaseModel):
+    description = model_fields.CharField(_("Product price group"), unique=True, max_length=50)
+
+    class Meta:
+        verbose_name = _('Product price group')
+        verbose_name_plural = _('Product price groups')
+
+    def __str__(self):
+        return self.description
+
 class ProductPrice(SequenceMixin, BaseModel):
     SEQUENCE_FIELDS = []
     importable_model = True
 
-    price_group = model_fields.ForeignKey("product_price.PriceGroup", verbose_name=_("Price Group"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
+    price_group = model_fields.ForeignKey("product_price.PriceGroup", verbose_name=_("Price Group"), null=True, blank=True, on_delete=model_fields.CASCADE)
+    product_price_group = model_fields.ForeignKey("product_price.ProductPriceGroup", verbose_name=_("Product Price Group"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
     product = model_fields.ForeignKey("product.Product", verbose_name=_("Product"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
 
     price = model_fields.DecimalField(verbose_name=_('Price'),style={'wrapper_class': 'col-6'},max_digits=12, decimal_places=2, default=0)
@@ -47,7 +58,7 @@ class ProductPrice(SequenceMixin, BaseModel):
     pricing_type = model_fields.CharField(
         verbose_name=_('Pricing type'), 
         max_length=100, 
-        default='price', 
+        default=PRICING_TYPE.PRICE, 
         choices=PRICING_TYPE.choices,
         style={'wrapper_class': 'col-6'}
     )
@@ -105,30 +116,9 @@ class CustomerDiscountGroup(BaseModel):
     store = model_fields.ForeignKey("entity.Store", verbose_name=_("store"), on_delete=model_fields.CASCADE, null = True, blank = True)
     group_number = model_fields.CharField(verbose_name=_("Group number"),max_length=100, unique=True)
     description = model_fields.CharField(verbose_name=_("Discount reference"),max_length=100)
-    
-    is_default = model_fields.BooleanField(_('Default price group'),default=False)
 
     def __str__(self):
         return self.group_number
-
-    @classmethod
-    def get_default_pk(cls):
-        try:
-            vat_group, created = cls.objects.get_or_create(
-                is_default=True
-                ,defaults={
-                     'description':'Default {class_name}, needs to be changed'.format(class_name = cls.__class__)
-                }
-            )
-        except Exception as e:
-            logger.error(e)
-            return None
-        return vat_group.pk
-
-    def save(self, *args, **kwargs):
-        if self.is_default:
-            CustomerDiscountGroup.objects.filter(is_default = True).update(is_default=False)
-        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _('Customer Group')
@@ -201,16 +191,18 @@ class Discount(BaseModel):
     importable_model = True
 
     product_discount_group = model_fields.ForeignKey('product_price.ProductDiscountGroup', verbose_name=_("Product discount group"),on_delete=model_fields.CASCADE, null=True)  
-    product = model_fields.ForeignKey(Product, verbose_name=_("Product"),on_delete=model_fields.CASCADE, null=True)  
+    product = model_fields.ForeignKey(Product, verbose_name=_("Product"),on_delete=model_fields.CASCADE, blank=True, null=True)  
 
-    customer_discount_group = model_fields.ForeignKey('product_price.CustomerDiscountGroup', verbose_name=_("Customer discount group"),on_delete=model_fields.CASCADE, null=True)  
-    customer = model_fields.ForeignKey('customer.Customer', verbose_name=_("Customer"),on_delete=model_fields.CASCADE, null=True)  
+    customer_discount_group = model_fields.ForeignKey('product_price.CustomerDiscountGroup', verbose_name=_("Customer discount group"),on_delete=model_fields.CASCADE, blank=True, null=True)  
+    customer = model_fields.ForeignKey('customer.Customer', verbose_name=_("Customer"),on_delete=model_fields.CASCADE, blank=True, null=True)  
 
-    # discount_abs = model_fields.DecimalField(verbose_name=_("Discount absolute"),max_digits=10, decimal_places=4, default = decimal.Decimal(0))
     discount_perc = model_fields.DecimalField(verbose_name=_("Discount percentage"),max_digits=10, decimal_places=4, default = decimal.Decimal(0))
 
     min_order_quantity = model_fields.IntegerField(verbose_name=_('Min quantity order discount'), default=0)
     max_order_quantity = model_fields.IntegerField(verbose_name=_('Max quantity order discount'), default=9999999)
+
+    min_duration = model_fields.DurationField(verbose_name=_('Min duration'), default=timezone.timedelta(days=0), style={'wrapper_class': 'col-6'})
+    max_duration = model_fields.DurationField(verbose_name=_('Max duration'), default=timezone.timedelta(days=100), style={'wrapper_class': 'col-6'})
 
     valid_from = model_fields.DateTimeField(verbose_name=_("valid from"),default=timezone.now )  
     valid_to = model_fields.DateTimeField(verbose_name=_("valid to"), default=return_date_time_latest )  
