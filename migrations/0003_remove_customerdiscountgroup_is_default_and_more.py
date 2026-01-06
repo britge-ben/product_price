@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('customer', '0002_initial'),
-        ('product', '0006_productavailability_and_more'),
+        # ('product', '0006_productavailability_and_more'),
         ('product_price', '0002_productprice_max_duration_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
