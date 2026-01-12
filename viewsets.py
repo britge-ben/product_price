@@ -26,8 +26,18 @@ class ProductPriceGroupViewSet(ModelViewSetForm):
             serializer_fields=None,
     )
     def duplicate(self, request, pk=None ):
-        instance = self.get_object()
-        return super().return_response(request,  instance = self.instance, post_instance=self.instance._meta.model(), initial_data=duplicate_instance_related_uuid(instance))    
+        dup_instance = self.get_object()
+        def callback_func(request, instance):
+            prices = request.data.get('duplicate_prices', False)
+            if prices== 'false':
+                prices = False
+            if prices:
+                for price in dup_instance.productprice_set.all():
+                    new_price = duplicate_instance(price, return_dict=False, exclude_fields=['product_price_group'])
+                    new_price.product_price_group = instance
+                    new_price.save()
+        self.callback_func = callback_func
+        return super().return_response(request,  post_instance=dup_instance._meta.model(), initial_data=duplicate_instance_related_uuid(dup_instance))    
 
     @britge_action_detail_multiple(
         action_icon="ICON_PRICE", 
@@ -40,11 +50,10 @@ class ProductPriceGroupViewSet(ModelViewSetForm):
         form_style = {'width':'80vw'},
     )
     def manage_prices(self, request, pk=None ):
-        self.callback_func = lambda request, instance: print('CALLBACK', instance.pricing_type)
         return super().multiple_form_handler(request, many_attr='productprice_set')    
 
 
-from apps_base._base.utils import duplicate_instance_related_uuid
+from apps_base._base.utils import duplicate_instance_related_uuid, duplicate_instance
 class ProductPriceViewSet(TranslateMixin, ModelViewSetForm):
     queryset = ProductPrice.objects.all().order_by('-created_time').select_related('product', 'price_group')
     serializer_class = ProductPriceSerializer
