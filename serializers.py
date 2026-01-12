@@ -3,6 +3,8 @@ from rest_framework import serializers
 from .models import *
 from apps_base.api.serializer_class import BaseModelSerializer, BaseTranslateModelSerializer
 from django.utils.translation import gettext_lazy as _
+from apps_shared.customer.serializers import CustomerSerializer
+from apps_base.api import serializer_fields
 
 
 class ProductSerializer(BaseModelSerializer):
@@ -14,20 +16,37 @@ class PriceGroupSerializer(BaseModelSerializer):
     class Meta:
         model = PriceGroup
         fields = '__all__'
-        
+
 class ProductPriceSerializer(BaseModelSerializer):
     price_group_object = PriceGroupSerializer(source='price_group', label=_('Price group'), read_only=True)
     product_object = ProductSerializer(source='product', label=_('Product'), read_only=True)
     class Meta:
         model = ProductPrice
+        fields = '__all__'    
+    def get_fields(self):
+        fields = super().get_fields()
+        if bool(self.instance and not isinstance(self.instance, list) and not self.instance.pricing_type in [PRICING_TYPE.PRICE_PER_HOUR, PRICING_TYPE.PRICE_PER_DAY]):
+            fields.pop('min_duration')
+            fields.pop('max_duration')
+        return fields
+class ProductPriceGroupSerializer(BaseModelSerializer):
+    product_price_objects = ProductPriceSerializer(source='productprice_set', label=_('Prices'), fields=['id', 'price', 'pricing_type', 'min_order_quantity', 'max_order_quantity', 'min_duration', 'max_duration', 'valid_from', 'valid_to'], read_only=True, many=True)
+    duplicate_prices = serializer_fields.BooleanField(label=_('Duplicate prices'), write_only=True, initial=False)
+    class Meta:
+        model = ProductPriceGroup
         fields = '__all__'
+    
+    def save(self, **kwargs):
+        self.validated_data.pop('duplicate_prices', False)
+        return super().save(**kwargs)
+
+
     
 class CustomerDiscountGroupSerializer(BaseModelSerializer):
     class Meta:
         model = CustomerDiscountGroup
         fields = '__all__'
 
-from apps_shared.customer.serializers import CustomerSerializer
 class DiscountSerializer(BaseModelSerializer):
     product_object = ProductSerializer(source='product', label=_('Product'), read_only=True)
     product_discount_group_object = PriceGroupSerializer(source='product_discount_group', label=_('Price group'), read_only=True)

@@ -35,6 +35,22 @@ class PriceGroup(DefaultMixin, BaseModel):
     def __str__(self):
         return self.description
 
+    class BritgePortal:
+        viewset = 'apps_shared.product_price.viewsets.PriceGroupViewSet'
+        portal_urls = [
+            {
+                'id': 'price_group',
+                'url': 'product/price-group/',
+                'title': 'Price group',
+                'menu':{
+                    'id': 'price_group',
+                    'sequence':0, 
+                    'parent': 'product',  
+                    'url': 'product/price-group/', 
+                    'title': _('Price groups')
+                }
+            }
+        ]
 class ProductPriceGroup(BaseModel):
     description = model_fields.CharField(_("Product price group"), unique=True, max_length=50)
 
@@ -45,6 +61,22 @@ class ProductPriceGroup(BaseModel):
     def __str__(self):
         return self.description
 
+    class BritgePortal:
+        viewset = 'apps_shared.product_price.viewsets.ProductPriceGroupViewSet'
+        portal_urls = [
+            {
+                'id': 'product_price_group',
+                'url': 'product/product-price-group/',
+                'title': 'Product price group',
+                'menu':{
+                    'id': 'product_price_group',
+                    'sequence':0, 
+                    'parent': 'product',  
+                    'url': 'product/product-price-group/', 
+                    'title': _('Product price groups')
+                }
+            }
+        ]
 class ProductPrice(SequenceMixin, BaseModel):
     SEQUENCE_FIELDS = []
     importable_model = True
@@ -58,6 +90,7 @@ class ProductPrice(SequenceMixin, BaseModel):
     pricing_type = model_fields.CharField(
         verbose_name=_('Pricing type'), 
         max_length=100, 
+        reload_field=True,
         default=PRICING_TYPE.PRICE, 
         choices=PRICING_TYPE.choices,
         style={'wrapper_class': 'col-6'}
@@ -66,8 +99,8 @@ class ProductPrice(SequenceMixin, BaseModel):
     min_order_quantity = model_fields.IntegerField(verbose_name=_('min quantity order discount'), default=0, style={'wrapper_class': 'col-6'})
     max_order_quantity = model_fields.IntegerField(verbose_name=_('max quantity order discount'), default=9999999, style={'wrapper_class': 'col-6'})
 
-    min_duration = model_fields.DurationField(verbose_name=_('Min duration'), default=timezone.timedelta(days=0), style={'wrapper_class': 'col-6'})
-    max_duration = model_fields.DurationField(verbose_name=_('Max duration'), default=timezone.timedelta(days=100), style={'wrapper_class': 'col-6'})
+    min_duration = model_fields.DurationField(verbose_name=_('Min duration'), format='d h', default=timezone.timedelta(days=0), style={'wrapper_class': 'col-6'})
+    max_duration = model_fields.DurationField(verbose_name=_('Max duration'), format='d h', default=timezone.timedelta(days=100), style={'wrapper_class': 'col-6'})
 
     valid_from = model_fields.DateTimeField(verbose_name=_("valid from"),default= timezone.now, style={'wrapper_class': 'col-6'})  
     valid_to = model_fields.DateTimeField(verbose_name=_("valid to"),default= return_date_time_latest, style={'wrapper_class': 'col-6'})  
@@ -75,41 +108,6 @@ class ProductPrice(SequenceMixin, BaseModel):
     class Meta:
         verbose_name = _('Price group price')
         verbose_name_plural = _('Price group prices')
-
-    def save(self, *args, **kwargs):
-        # check uniqueness
-        unique = ProductPrice.objects.filter(
-            product = self.product,
-            price_group = self.price_group,
-            price = round(self.price,2)
-        ).first()
-        if unique:
-            return unique
-        # check other prices
-        olds = ProductPrice.objects.filter(
-            product = self.product,
-            price_group = self.price_group,
-            valid_from__lte = self.valid_from, 
-            valid_to__gte = self.valid_to
-        ).update(valid_to = self.valid_from)
-        super().save()
-
-    class BritgePortal:
-        viewset = 'apps_shared.product_price.viewsets.ProductPriceViewSet'
-        portal_urls = [
-            {
-                'id': 'product_price',
-                'url': 'product/price-group/',
-                'title': 'Price group',
-                'menu':{
-                    'id': 'product_price',
-                    'sequence':0, 
-                    'parent': 'product',  
-                    'url': 'product/price-group/', 
-                    'title': _('Price groups')
-                }
-            }
-        ]
 
 class CustomerDiscountGroup(BaseModel):
     importable_model = True
