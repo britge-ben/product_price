@@ -20,11 +20,12 @@ logger = logging.getLogger(__name__)
 def return_date_time_latest():
     return datetime.datetime(9999, 12, 31)
 
+
 def get_default_store():
-    return Store.objects.get_current().pk
+    return Store.get_default()
 
 class PriceGroup(DefaultMixin, BaseModel):
-    DEFAULTS = {'store': get_default_store}
+    DEFAULTS = {'store': get_default_store, 'description': 'Default'}
     store = model_fields.ForeignKey("entity.Store", verbose_name=_("Store"),  on_delete=model_fields.CASCADE, default=get_default_store)
     description = model_fields.CharField(_("Price group"), unique=True, max_length=50)
 
@@ -81,9 +82,10 @@ class ProductPrice(SequenceMixin, BaseModel):
     SEQUENCE_FIELDS = []
     importable_model = True
 
-    price_group = model_fields.ForeignKey("product_price.PriceGroup", verbose_name=_("Price Group"), null=True, blank=True, on_delete=model_fields.CASCADE)
+    price_group = model_fields.ForeignKey("product_price.PriceGroup", verbose_name=_("Price Group"), style={'wrapper_class': 'col-6'}, default=PriceGroup.get_default_pk, on_delete=model_fields.CASCADE)
     product_price_group = model_fields.ForeignKey("product_price.ProductPriceGroup", verbose_name=_("Product Price Group"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
     product = model_fields.ForeignKey("product.Product", verbose_name=_("Product"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
+    option = model_fields.ForeignKey("product.ProductOption", verbose_name=_("Option"), related_name='price_option', null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
 
     price = model_fields.DecimalField(verbose_name=_('Price'),style={'wrapper_class': 'col-6'},max_digits=12, decimal_places=2, default=0)
 
@@ -190,6 +192,7 @@ class Discount(BaseModel):
 
     product_discount_group = model_fields.ForeignKey('product_price.ProductDiscountGroup', verbose_name=_("Product discount group"),on_delete=model_fields.CASCADE, null=True)  
     product = model_fields.ForeignKey(Product, verbose_name=_("Product"),on_delete=model_fields.CASCADE, blank=True, null=True)  
+    option = model_fields.ForeignKey("product.ProductOption", verbose_name=_("Option"), related_name='discount_option', null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
 
     customer_discount_group = model_fields.ForeignKey('product_price.CustomerDiscountGroup', verbose_name=_("Customer discount group"),on_delete=model_fields.CASCADE, blank=True, null=True)  
     customer = model_fields.ForeignKey('customer.Customer', verbose_name=_("Customer"),on_delete=model_fields.CASCADE, blank=True, null=True)  
