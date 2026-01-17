@@ -1,0 +1,241 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-16 18:33+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: .\apps_shared\product_price\models.py:29
+msgid "Store"
+msgstr "Magasin"
+
+#: .\apps_shared\product_price\models.py:30
+#: .\apps_shared\product_price\models.py:33
+#: .\apps_shared\product_price\serializers.py:21
+#: .\apps_shared\product_price\serializers.py:52
+msgid "Price group"
+msgstr "Groupe de prix"
+
+#: .\apps_shared\product_price\models.py:34
+#: .\apps_shared\product_price\models.py:51
+msgid "Price groups"
+msgstr "Groupes de prix"
+
+#: .\apps_shared\product_price\models.py:56
+#: .\apps_shared\product_price\models.py:59
+msgid "Product price group"
+msgstr "Groupe de prix du produit"
+
+#: .\apps_shared\product_price\models.py:60
+#: .\apps_shared\product_price\models.py:77
+msgid "Product price groups"
+msgstr "Groupes de prix des produits"
+
+#: .\apps_shared\product_price\models.py:85
+msgid "Price Group"
+msgstr "Groupe de prix"
+
+#: .\apps_shared\product_price\models.py:86
+msgid "Product Price Group"
+msgstr "Groupe de prix du produit"
+
+#: .\apps_shared\product_price\models.py:87
+#: .\apps_shared\product_price\models.py:194
+#: .\apps_shared\product_price\serializers.py:22
+#: .\apps_shared\product_price\serializers.py:51
+msgid "Product"
+msgstr "Produit"
+
+#: .\apps_shared\product_price\models.py:88
+#: .\apps_shared\product_price\models.py:195
+msgid "Option"
+msgstr "Option"
+
+#: .\apps_shared\product_price\models.py:90
+msgid "Price"
+msgstr "Prix"
+
+#: .\apps_shared\product_price\models.py:93
+msgid "Pricing type"
+msgstr "Type de prix"
+
+#: .\apps_shared\product_price\models.py:101
+msgid "min quantity order discount"
+msgstr "remise sur la commande sur quantité minimum"
+
+#: .\apps_shared\product_price\models.py:102
+msgid "max quantity order discount"
+msgstr "remise sur la commande sur quantité maximale"
+
+#: .\apps_shared\product_price\models.py:104
+#: .\apps_shared\product_price\models.py:205
+msgid "Min duration"
+msgstr "Durée minimale"
+
+#: .\apps_shared\product_price\models.py:105
+#: .\apps_shared\product_price\models.py:206
+msgid "Max duration"
+msgstr "Durée maximale"
+
+#: .\apps_shared\product_price\models.py:107
+#: .\apps_shared\product_price\models.py:208
+msgid "valid from"
+msgstr "valable à partir de"
+
+#: .\apps_shared\product_price\models.py:108
+#: .\apps_shared\product_price\models.py:209
+msgid "valid to"
+msgstr "valable pour"
+
+#: .\apps_shared\product_price\models.py:111
+msgid "Price group price"
+msgstr "Prix ​​de groupe"
+
+#: .\apps_shared\product_price\models.py:112
+msgid "Price group prices"
+msgstr "Prix ​​des groupes de prix"
+
+#: .\apps_shared\product_price\models.py:116
+#: .\apps_shared\product_price\models.py:128
+msgid "store"
+msgstr "magasin"
+
+#: .\apps_shared\product_price\models.py:117
+#: .\apps_shared\product_price\models.py:129
+msgid "Group number"
+msgstr "Numéro de groupe"
+
+#: .\apps_shared\product_price\models.py:118
+#: .\apps_shared\product_price\models.py:130
+msgid "Discount reference"
+msgstr "Référence de remise"
+
+#: .\apps_shared\product_price\models.py:124
+msgid "Customer Group"
+msgstr "Groupe de clients"
+
+#: .\apps_shared\product_price\models.py:125
+msgid "Customer Groups"
+msgstr "Groupes de clients"
+
+#: .\apps_shared\product_price\models.py:133
+#: .\apps_shared\product_price\models.py:266
+#: .\apps_shared\product_price\serializers.py:76
+#: .\apps_shared\product_price\serializers.py:103
+msgid "discount label"
+msgstr "étiquette de réduction"
+
+#: .\apps_shared\product_price\models.py:145
+msgid "Discount group"
+msgstr "Groupe de réduction"
+
+#: .\apps_shared\product_price\models.py:146
+#: .\apps_shared\product_price\models.py:184
+msgid "Discount groups"
+msgstr "Groupes de réduction"
+
+#: .\apps_shared\product_price\models.py:193
+msgid "Product discount group"
+msgstr "Groupe de remise sur les produits"
+
+#: .\apps_shared\product_price\models.py:197
+msgid "Customer discount group"
+msgstr "Groupe de réduction client"
+
+#: .\apps_shared\product_price\models.py:198
+#: .\apps_shared\product_price\serializers.py:53
+msgid "Customer"
+msgstr "Client"
+
+#: .\apps_shared\product_price\models.py:200
+msgid "Discount percentage"
+msgstr "Pourcentage de remise"
+
+#: .\apps_shared\product_price\models.py:202
+msgid "Min quantity order discount"
+msgstr "Remise sur commande de quantité minimale"
+
+#: .\apps_shared\product_price\models.py:203
+msgid "Max quantity order discount"
+msgstr "Remise sur commande de quantité maximale"
+
+#: .\apps_shared\product_price\models.py:215
+msgid "Discount group discount"
+msgstr "Remise de groupe"
+
+#: .\apps_shared\product_price\models.py:216
+msgid "Discount group discounts"
+msgstr "Remises de groupe"
+
+#: .\apps_shared\product_price\models.py:261
+msgid "Leave empty to make available for all products"
+msgstr "Laisser vide pour rendre disponible pour tous les produits"
+
+#: .\apps_shared\product_price\models.py:288
+msgid "Discount coupon"
+msgstr "Coupon de réduction"
+
+#: .\apps_shared\product_price\models.py:289
+msgid "Discount coupons"
+msgstr "Coupons de réduction"
+
+#: .\apps_shared\product_price\models.py:292
+msgid "Discount Coupon"
+msgstr "Coupon de réduction"
+
+#: .\apps_shared\product_price\models.py:293
+msgid "product"
+msgstr "produit"
+
+#: .\apps_shared\product_price\models.py:297
+msgid "Product discount coupon"
+msgstr "Coupon de réduction sur le produit"
+
+#: .\apps_shared\product_price\models.py:298
+msgid "Product discount coupons"
+msgstr "Coupons de réduction sur les produits"
+
+#: .\apps_shared\product_price\serializers.py:33
+msgid "Prices"
+msgstr "Tarifs"
+
+#: .\apps_shared\product_price\serializers.py:34
+msgid "Duplicate prices"
+msgstr "Prix ​​en double"
+
+#: .\apps_shared\product_price\serializers.py:66
+msgid "A discount with this minimal order quantity already exists"
+msgstr "Une remise avec cette quantité minimale de commande existe déjà"
+
+#: .\apps_shared\product_price\serializers.py:72
+msgid "A discount with this maximum order quantity already exists"
+msgstr "Une réduction avec cette quantité maximale de commande existe déjà"
+
+#: .\apps_shared\product_price\serializers.py:79
+msgid "Discounts"
+msgstr "Réductions"
+
+#: .\apps_shared\product_price\viewsets.py:22
+msgid "Add another"
+msgstr "Ajoutez-en un autre"
+
+#: .\apps_shared\product_price\viewsets.py:23
+msgid "Duplicate"
+msgstr "Double"
+
+#: .\apps_shared\product_price\viewsets.py:44
+msgid "Manage prices"
+msgstr "Gérer les prix"
