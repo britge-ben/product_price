@@ -1,3 +1,4 @@
+from typing import Any
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 import decimal
@@ -13,6 +14,8 @@ from .manager import DiscountGroupManager, DiscountManager, DiscountCouponManage
 from apps_base._base.models import DefaultMixin
 from apps_shared.product.choices import PRICING_TYPE
 
+from apps_shared.product.utils import get_create_product
+from apps_shared.product_price.models import PRICING_TYPE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -256,25 +259,27 @@ class Discount(BaseModel):
         #     self.name = self.description
         return super().save()
 
-
+from django.db.models import Sum
 class DiscountCoupon(BaseTranslationModel):
-    products = model_fields.ManyToManyField(Product, blank = True, help_text=_("Leave empty to make available for all products"), through='product_price.ProductDiscountCoupon')  
-    email = model_fields.CharField(max_length=100, null = True, blank = True)
+    products = model_fields.ManyToManyField(Product,verbose_name=_("Allowed for Products"), blank = True, help_text=_("Leave empty to make available for all products"), through='product_price.ProductDiscountCoupon')  
+    needs_products = model_fields.IntegerField(verbose_name=_("Quantity needed of allowed products"), null=True, blank = True, help_text=_(f"Fill in number of products that for the discount coupon to be valid. Use -quantity to use distinct number of products, leave empty to use all products."))  
+    email = model_fields.CharField(_("Email"), max_length=100, null=True, blank = True)
 
-    discount_code = model_fields.CharField( max_length=30, unique=True)  
+    discount_code = model_fields.CharField(verbose_name=_("Discount code"), max_length=30, unique=True)  
     translations = TranslatedFields(
         discount_label = model_fields.CharField(verbose_name=_("discount label"),max_length=100)
     )
 
-    discount_abs = model_fields.DecimalField(max_digits=10, decimal_places=4, default = decimal.Decimal(0))
-    discount_perc = model_fields.DecimalField(max_digits=10, decimal_places=4, default = decimal.Decimal(0))
+    discount_abs = model_fields.DecimalField(verbose_name=_("Absolute discount"), max_digits=10, decimal_places=4, default = decimal.Decimal(0))
+    discount_perc = model_fields.DecimalField(verbose_name=_("Discount Percentage"), max_digits=10, decimal_places=4, default = decimal.Decimal(0))
     
-    minimal_order_amount = model_fields.DecimalField(max_digits=10, decimal_places=2, default = decimal.Decimal(0))
+    minimal_order_amount = model_fields.DecimalField(verbose_name=_("Minimal order amount"), max_digits=10, decimal_places=2, default = decimal.Decimal(0))
     
-    valid_from = model_fields.DateTimeField(default= timezone.now )  
-    valid_to = model_fields.DateTimeField(default= return_date_time_latest  )  
+    valid_from = model_fields.DateTimeField(verbose_name=_("Valid from"), default= timezone.now )  
+    valid_to = model_fields.DateTimeField(verbose_name=_("Valid to"), default= timezone.datetime(9999, 12, 31)  )  
     
     objects = DiscountCouponManager()
+
     def __str__(self):
         return str(self.discount_code)
         
@@ -282,9 +287,37 @@ class DiscountCoupon(BaseTranslationModel):
         if self.email == '':
             self.email = None
         super().save(*args, **kwargs)
-        
+
+    def get_product(self, store):
+        if self.discount_abs:
+            product = get_create_product('DISCOUNT_COUPON_ABS', {'name':_('Discount Coupon'), 'pricing_type': PRICING_TYPE.PRICE, 'default_price': 0}, store)
+        elif self.discount_perc:
+            product = get_create_product('DISCOUNT_COUPON_PERC', {'name':_('Discount Coupon'), 'pricing_type': PRICING_TYPE.PERCENTAGE_TOTAL, 'default_price': 0}, store)
+        product = product[0]
+        return product
+
+    def validate_coupon(self, emails, order_amount, lines):
+        if emails: 
+            valid = False
+            for email in emails:
+                if email == self.email:
+                    valid = True
+            if not valid:
+                return _('This is not a valid code for you')
+        if order_amount < self.minimal_order_amount:
+            return _('Order amount has to be a minimum of €{min} ').format(min=self.minimal_order_amount)
+        product_list = self.products.all()
+        if product_list:
+            if self.needs_products is None or self.needs_products < 0:
+                needed = self.needs_products or len(product_list)
+                if lines.filter(product__in=product_list).values('product').distinct().count() < needed:
+                    return _('This discount coupon is not valid for this order')
+            elif self.needs_products > 0:
+                if lines.filter(product__in=product_list).aggregate(Sum('quantity')) < self.needs_products:
+                    return _('This discount coupon is not valid for this order')
+        return False
+
     class Meta:
-        # default_related_name = 'discountcoupons'
         verbose_name = _('Discount coupon')
         verbose_name_plural = _('Discount coupons')
         
@@ -293,6 +326,5 @@ class ProductDiscountCoupon(BaseModel):
     product = model_fields.ForeignKey(Product, verbose_name=_("product"),on_delete=model_fields.CASCADE)  
 
     class Meta:
-        # default_related_name = 'productdiscountcoupons'
         verbose_name = _('Product discount coupon')
         verbose_name_plural = _('Product discount coupons')

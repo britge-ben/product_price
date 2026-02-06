@@ -32,7 +32,7 @@ def calculate_price_expression(
         When(**{pricing_type: 'price'},
              then=ExpressionWrapper(base_price * quantity, output_field=output_field)),
         When(**{pricing_type: 'price_per_hour'},
-             then=ExpressionWrapper(base_price * quantity * Extract(duration, 'epoch') / SECONDS_PER_HOUR, output_field=output_field)),
+             then=ExpressionWrapper(base_price * quantity * Ceil(Extract(duration, 'epoch') / SECONDS_PER_HOUR), output_field=output_field)),
         When(**{pricing_type: 'price_per_day'},
              then=ExpressionWrapper(base_price * quantity * Ceil(Extract(duration, 'epoch') / SECONDS_PER_HOUR / HOURS_PER_DAY), output_field=output_field)),
         # When(**{pricing_type: 'price_per_person'},

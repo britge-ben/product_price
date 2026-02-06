@@ -5,7 +5,7 @@ from apps_base.api.serializer_class import BaseModelSerializer, BaseTranslateMod
 from django.utils.translation import gettext_lazy as _
 from apps_shared.customer.serializers import CustomerSerializer
 from apps_base.api import serializer_fields
-
+from apps_base._base.utils import safe_get
 
 class ProductSerializer(BaseModelSerializer):
     class Meta:
@@ -85,14 +85,13 @@ class ProductDiscountGroupSerializer(BaseModelSerializer):
                 'min_order_quantity',
                 'max_order_quantity',
             ], 
-            many=True)
+            many=True
+        )
     class Meta:
         model = ProductDiscountGroup
         fields = '__all__'
 
-
 class DiscountCouponTranslationSerializer(BaseTranslateModelSerializer):
-
     class Meta:
         model = DiscountCoupon
         fields = [ 
@@ -100,17 +99,62 @@ class DiscountCouponTranslationSerializer(BaseTranslateModelSerializer):
         ]
 
 class DiscountCouponSerializer(BaseTranslateModelSerializer):
-    discount_label= serializers.CharField(label=_('discount label'))
+    discount_label= serializers.CharField(label=_('Discount label'))
 
     class Meta:
         model = DiscountCoupon
         fields = '__all__'
 
     def validate_discount_perc(self, value):
-            """
-            Discount Percentage must be between 0 and 1
-            """
-            if value > 1 or value < 0:
-                raise serializers.ValidationError("Discount Percentage must be between 0 and 1")
-            return value
+        """
+        Discount Percentage must be between 0 and 1
+        """
+        if value > 1 or value < 0:
+            raise serializers.ValidationError("Discount Percentage must be between 0 and 1")
+        return value
 
+
+class DiscountCouponSerializer(BaseModelSerializer):
+    discount_code = serializers.CharField(label=_('Discount code'))
+    class Meta:
+        model = DiscountCoupon
+        fields = ['discount_code']
+
+    def validate_discount_code(self, value):
+        if not DiscountCoupon.objects.filter(discount_code=value).exists():
+            raise serializers.ValidationError(_('Invalid discount code'))
+        return value
+
+
+
+class DiscountCouponFieldMixin:
+    discount_code = serializer_fields.CharField( label=_('Discount Coupon'),write_only=True,allow_null=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self.Meta.model, 'add_discount_coupon') and not callable(getattr(self.Meta.model, 'add_discount_coupon', None)):
+            raise TypeError(
+                f'Class {self.__class__.__name__} must define add_discount_coupon method on model {self.Meta.model.__name__}. '
+            )
+
+    def validate_discount_code(self, discount_code):
+        if not discount_code:
+            return None
+        coupon = DiscountCoupon.objects.filter(discount_code=discount_code).first()
+        if not coupon:
+            raise serializer_fields.ValidationError(_('Invalid discount code'))
+        error = coupon.validate_coupon(
+            emails=[self.instance.email, safe_get(self.instance, 'account', 'email')],
+            order_amount=self.instance.calc_total_amount_in_vat,
+            lines=self.instance.reservationlines.all(),
+        )
+        if error:
+            raise serializer_fields.ValidationError(error)
+        return coupon
+
+    def save(self, **kwargs):
+        discount_code = self.validated_data.pop('discount_code', None)
+        instance = super().save(**kwargs)
+        if discount_code: 
+            instance.add_discount_coupon(discount_code)
+        return instance
