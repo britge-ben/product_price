@@ -16,7 +16,7 @@ from apps_shared.product.choices import PRICING_TYPE
 
 from apps_shared.product.utils import get_create_product
 from apps_shared.product_price.models import PRICING_TYPE
-
+from django.db.models import Func, Value
 import logging
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ class ProductPrice(SequenceMixin, BaseModel):
     product = model_fields.ForeignKey("product.Product", verbose_name=_("Product"), null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
     option = model_fields.ForeignKey("product.ProductOption", verbose_name=_("Option"), related_name='price_option', null=True, blank=True, style={'wrapper_class': 'col-6'}, on_delete=model_fields.CASCADE)
 
-    price = model_fields.DecimalField(verbose_name=_('Price'),style={'wrapper_class': 'col-6'},max_digits=12, decimal_places=2, default=0)
+    price = model_fields.DecimalField(verbose_name=_('Price'),style={'wrapper_class': 'col-6'},max_digits=12, decimal_places=4, default=0)
 
     pricing_type = model_fields.CharField(
         verbose_name=_('Pricing type'), 
@@ -328,3 +328,383 @@ class ProductDiscountCoupon(BaseModel):
     class Meta:
         verbose_name = _('Product discount coupon')
         verbose_name_plural = _('Product discount coupons')
+
+
+
+from .price_calculations import calculate_price_expression
+from apps_base._base.model_fields import F, Value, Cast
+from django.db import models
+from apps_shared.product.choices import UNIT_TYPE
+from apps_shared.vat.models import Country
+
+class PriceFieldsMixin(models.Model):
+    quantity = model_fields.DecimalField( _("Quantity"), max_digits=18, decimal_places=6, blank=True, style={'wrapper_class':'col-4'})
+    unit = model_fields.CharField(choices=UNIT_TYPE.choices, max_length = 3, blank=True, verbose_name=_('Unit'), style={'wrapper_class':'col-4'} )
+    pricing_type = model_fields.CharField(verbose_name=_("Pricing type"), choices=PRICING_TYPE.choices, max_length=256, blank=True, style={'wrapper_class':'col-4'})
+    base_price = model_fields.CurrencyFloatField(_('Base price'),null=True, blank=True, editable=False,)
+    price_ex_discount = model_fields.CurrencyFloatField(_('Price ex discount'), blank=True, style={'wrapper_class':'col-4'})
+    price_discount = model_fields.CurrencyFloatField(_('Discount'), blank=True, style={'wrapper_class':'col-4'})
+    vat_percentage = model_fields.DecimalField(verbose_name=_("VAT"), max_digits=5, decimal_places=4, editable=False)
+    is_vat_included = model_fields.BooleanField(verbose_name=_("VAT included in price"), hidden_write_field=True, style={'wrapper_class':'col-4'})
+
+    price = model_fields.CurrencyGeneratedField(
+        expression = F('price_ex_discount') - F('price_discount'),
+        verbose_name=_("Price"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    total_amount = model_fields.CurrencyGeneratedField(
+        expression = calculate_price_expression(
+            base_price=F('price_ex_discount') - F('price_discount'),
+            quantity=F('quantity'),
+            pricing_type='pricing_type'
+        ),
+        verbose_name=_("Total amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_price = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount'),
+                quantity=Value(1),
+                pricing_type='pricing_type'
+            ),
+        verbose_name=_("Unit amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_discount = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_discount'),
+                quantity=Value(1),
+                pricing_type='pricing_type'
+            ),
+        verbose_name=_("Unit amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_amount= model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=Value(1),
+                pricing_type='pricing_type'
+            ),
+        verbose_name=_("Unit amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_price_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount'),
+                quantity=Value(1),
+                pricing_type='pricing_type'
+            )  
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_discount_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_discount'),
+                quantity=Value(1),
+                pricing_type='pricing_type'
+            )  
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_amount_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=Value(1),
+                pricing_type='pricing_type'
+            )  
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+
+    amount_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=F('quantity'),
+                pricing_type='pricing_type'
+            )
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    amount_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=F('quantity'),
+                pricing_type='pricing_type'
+            )
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ) * F('vat_percentage')
+        ,
+        verbose_name=_("Total vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    amount_in_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=F('quantity'),
+                pricing_type='pricing_type'
+            ) *
+            (
+                Value(1) + (
+                    F('vat_percentage')
+                    * 
+                    (Value(1) - Cast(F('is_vat_included'), output_field=model_fields.IntegerField()))
+            )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+
+    def set_pricing(self):
+        print('set_pricing', self.price_ex_discount, self.price_discount, self.unit, self.vat_percentage, self.pricing_type)
+        if self.price_ex_discount is None or self.price_discount is None or self.unit is None or self.vat_percentage is None or self.pricing_type is None:
+            self.quantity = self.quantity or self.product.default_quantity or 1
+            product = Product.objects.all().add_prices(
+                customer = self.header.customer,
+                country = self.header.customer.country if self.header.customer else Country.get_default(),
+                store = self.header.store,
+                quantity = self.quantity,
+            ).get(pk = self.product.pk)
+            self.price_ex_discount = self.price_ex_discount or product.price
+            self.price_discount = self.price_discount or product.price_discount
+            self.unit = self.unit or product.unit 
+            self.vat_percentage = self.vat_percentage or product.calc_vat_percentage
+            self.pricing_type = self.pricing_type or product.calc_pricing_type
+        self.is_vat_included = self.header.store.enter_vat
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        self.set_pricing()
+        super().save(*args, **kwargs)
+
+class DurationRounded(Func):
+    """
+    Round duration: < 7.5h → ceil to hour, >= 7.5h → ceil to day.
+    PostgreSQL-only; pass the duration expression as the first arg.
+    """
+    function = None
+    template = """
+    CASE
+        WHEN EXTRACT(epoch FROM %(expressions)s) < 27000
+        THEN (CEIL(EXTRACT(epoch FROM %(expressions)s) / 3600) * 3600) * interval '1 second'
+        ELSE (CEIL(EXTRACT(epoch FROM %(expressions)s) / 86400) * 86400) * interval '1 second'
+    END
+    """
+    output_field = model_fields.DurationField()
+
+class DurationPriceFieldsModel(PriceFieldsMixin):
+    from_time = model_fields.DateTimeField(verbose_name=_("From time"))
+    to_time = model_fields.DateTimeField(verbose_name=_("To time"))
+    duration = model_fields.GeneratedField(
+        expression = F('to_time')  - F('from_time'),
+        verbose_name=_("Duration"), output_field=model_fields.DurationField(),
+    )
+    duration_rounded = model_fields.GeneratedField(
+        expression=DurationRounded(F('duration')),
+        verbose_name=_("Duration"),
+        output_field=model_fields.DurationField(),
+    )
+    price = model_fields.CurrencyGeneratedField(
+        expression = F('price_ex_discount') - F('price_discount'),
+        verbose_name=_("Price"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    total_amount = model_fields.CurrencyGeneratedField(
+        expression = calculate_price_expression(
+            base_price=F('price_ex_discount') - F('price_discount'),
+            quantity=F('quantity'),
+            duration=F('to_time')  - F('from_time'),
+            # people=F('people'),
+            pricing_type='pricing_type'
+        ),
+        verbose_name=_("Total amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_price = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount'),
+                quantity=Value(1),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            ),
+        verbose_name=_("Unit amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_discount = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_discount'),
+                quantity=Value(1),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            ),
+        verbose_name=_("Unit amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_amount= model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=Value(1),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            ),
+        verbose_name=_("Unit amount"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_price_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount'),
+                quantity=Value(1),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            )  
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_discount_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_discount'),
+                quantity=Value(1),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            )  
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    unit_amount_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=Value(1),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            )  
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    amount_ex_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=F('quantity'),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            )
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    amount_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=F('quantity'),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            )
+            / (
+                Value(1) + (
+                F('vat_percentage') * 
+                Cast(F('is_vat_included'), output_field=model_fields.IntegerField())
+             )
+            ) * F('vat_percentage')
+        ,
+        verbose_name=_("Total vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+    amount_in_vat = model_fields.CurrencyGeneratedField(
+        expression = 
+            calculate_price_expression(
+                base_price=F('price_ex_discount') - F('price_discount'),
+                quantity=F('quantity'),
+                duration=F('to_time')  - F('from_time'),
+                # people=F('people'),
+                pricing_type='pricing_type'
+            ) *
+            (
+                Value(1) + (
+                    F('vat_percentage')
+                    * 
+                    (Value(1) - Cast(F('is_vat_included'), output_field=model_fields.IntegerField()))
+            )
+            ),
+        verbose_name=_("Total amount ex vat"),
+        output_field=model_fields.CurrencyFloatField(),
+    )
+
+
+    class Meta:
+        abstract = True
